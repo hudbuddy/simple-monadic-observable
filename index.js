@@ -29,6 +29,30 @@ class Stream {
     return stream
   }
 
+  static merge (...streams) {
+    const initial = Stream.just()
+    streams.forEach(x => {
+      x._sinks.add(initial.next.bind(initial))
+    })
+    return initial
+  }
+
+  static combine (fn, ...streams) {
+    const initial = Stream.just()
+    const latestVals = new Array(streams.length)
+
+    streams.forEach((stream, i) => {
+      stream.forEach(x => {
+        latestVals[i] = x
+        if (Object.values(latestVals).length === latestVals.length) {
+          // Make sure all slots have been filled before combining
+          initial.next(fn(...latestVals))
+        }
+      })
+    })
+    return initial
+  }
+
   // Transformers
 
   mergeWith (stream) {
@@ -59,30 +83,5 @@ class Stream {
     const stream = Stream.just()
     this._sinks.add(x => wait(ms).then(() => stream.next(x)))
     return stream
-  }
-
-  static merge (...streams) {
-    const initial = Stream.just()
-    streams.forEach(x => {
-      x._sinks.add(initial.next.bind(initial))
-    })
-    return initial
-  }
-
-  static combine (fn, ...streams) {
-    const initial = Stream.just()
-    const latestVals = new Array(streams.length)
-
-    streams.forEach((stream, i) => {
-      stream.forEach(x => {
-        latestVals[i] = x
-        if (Object.values(latestVals).length === latestVals.length) {
-          // Make sure all slots have been filled before combining
-          initial.next(fn(...latestVals))
-        }
-      })
-    })
-
-    return initial
   }
 }
